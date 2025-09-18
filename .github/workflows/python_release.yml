@@ -1,4 +1,4 @@
-name: Python
+name: Python Release
 
 on:
   push:
@@ -11,12 +11,18 @@ env:
 
 jobs:
   build:
-
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v5
     - name: Build
-      run: cargo build -p windows-capture-python --verbose
+      run: cargo build -p windows-capture-python --verbose --release
+
+    - name: Upload all wheels
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-capture
+        path: ./target/release/*
+
     - name: Run tests
       run: cargo test -p windows-capture-python --verbose
