@@ -80,6 +80,17 @@ pub enum ImageFormat {
     JpegXr,
 }
 
+/// Pixel formats supported by the Windows API for image encoding.
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
+pub enum ImageEncoderPixelFormat {
+    /// 16-bit floating-point RGBA format.
+    Rgb16F,
+    /// 8-bit unsigned integer BGRA format.
+    Bgra8,
+    /// 8-bit unsigned integer RGBA format.
+    Rgba8,
+}
+
 /// Encodes raw image buffers into encoded bytes for common formats.
 ///
 /// Supports saving as PNG, JPEG, GIF, TIFF, BMP, and JPEG XR when the input
@@ -87,15 +98,14 @@ pub enum ImageFormat {
 ///
 /// # Example
 /// ```no_run
-/// use windows_capture::encoder::{ImageEncoder, ImageFormat};
-/// use windows_capture::settings::ColorFormat;
+/// use windows_capture::encoder::{ImageEncoder, ImageEncoderPixelFormat, ImageFormat};
 ///
 /// let width = 320u32;
 /// let height = 240u32;
 /// // BGRA8 buffer (e.g., from a frame)
 /// let bgra = vec![0u8; (width * height * 4) as usize];
 ///
-/// let png_bytes = ImageEncoder::new(ImageFormat::Png, ColorFormat::Bgra8)
+/// let png_bytes = ImageEncoder::new(ImageFormat::Png, ImageEncoderPixelFormat::Bgra8)
 ///     .unwrap()
 ///     .encode(&bgra, width, height)
 ///     .unwrap();
@@ -103,14 +113,14 @@ pub enum ImageFormat {
 /// std::fs::write("example.png", png_bytes).unwrap();
 /// ```
 pub struct ImageEncoder {
-    color_format: ColorFormat,
     encoder: windows::core::GUID,
+    pixel_format: BitmapPixelFormat,
 }
 
 impl ImageEncoder {
     /// Constructs a new [`ImageEncoder`].
     #[inline]
-    pub fn new(format: ImageFormat, color_format: ColorFormat) -> Result<Self, ImageEncoderError> {
+    pub fn new(format: ImageFormat, pixel_format: ImageEncoderPixelFormat) -> Result<Self, ImageEncoderError> {
         let encoder = match format {
             ImageFormat::Jpeg => BitmapEncoder::JpegEncoderId()?,
             ImageFormat::Png => BitmapEncoder::PngEncoderId()?,
@@ -120,7 +130,13 @@ impl ImageEncoder {
             ImageFormat::JpegXr => BitmapEncoder::JpegXREncoderId()?,
         };
 
-        Ok(Self { color_format, encoder })
+        let pixel_format = match pixel_format {
+            ImageEncoderPixelFormat::Bgra8 => BitmapPixelFormat::Bgra8,
+            ImageEncoderPixelFormat::Rgba8 => BitmapPixelFormat::Rgba8,
+            ImageEncoderPixelFormat::Rgb16F => BitmapPixelFormat::Rgba16,
+        };
+
+        Ok(Self { pixel_format, encoder })
     }
 
     /// Encodes the provided pixel buffer into the configured output [`ImageFormat`].
@@ -141,13 +157,15 @@ impl ImageEncoder {
 
         let encoder = BitmapEncoder::CreateAsync(self.encoder, &stream)?.join()?;
 
-        let pixelformat = match self.color_format {
-            ColorFormat::Bgra8 => BitmapPixelFormat::Bgra8,
-            ColorFormat::Rgba8 => BitmapPixelFormat::Rgba8,
-            ColorFormat::Rgba16F => return Err(ImageEncoderError::UnsupportedFormat),
-        };
-
-        encoder.SetPixelData(pixelformat, BitmapAlphaMode::Premultiplied, width, height, 1.0, 1.0, image_buffer)?;
+        encoder.SetPixelData(
+            self.pixel_format,
+            BitmapAlphaMode::Premultiplied,
+            width,
+            height,
+            1.0,
+            1.0,
+            image_buffer,
+        )?;
         encoder.FlushAsync()?.join()?;
 
         let size = stream.Size()?;
