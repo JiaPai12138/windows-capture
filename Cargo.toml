@@ -83,4 +83,4 @@ name = "cli"
 doc-scrape-examples = false
 
 [workspace]
-members = ["windows-capture-python"]
+members = ["windows-capture-python", "windows-cap-python"]

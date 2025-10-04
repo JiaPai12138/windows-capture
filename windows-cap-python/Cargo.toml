@@ -1,8 +1,8 @@
 [package]
-name = "windows-capture-python"
+name = "windows-cap-python"
 version = "2.0.0-alpha.7"
 authors = ["NiiightmareXD"]
-edition = "2021"
+edition = "2024"
 description = "Fastest Windows Screen Capture Library For Python 🔥"
 readme = "README-Python.md"
 repository = "https://github.com/NiiightmareXD/windows-capture/tree/main/windows-capture-python"
@@ -21,12 +21,17 @@ name = "windows_capture"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.26.0", features = [
-    "extension-module",
-    "auto-initialize",
-    "abi3",
-    "abi3-py39",
-] }
+pyo3 = { version = "0.26.0", features = [ "extension-module", ] }
 thiserror = "2.0.17"
 windows = "0.62.1"
 windows-capture = { path = ".." }
+# numpy = "0.26.0"
+
+[profile.release]
+codegen-units = 1
+debug = false
+debug-assertions = false
+incremental = false
+lto = "fat"
+opt-level = 3
+strip = true

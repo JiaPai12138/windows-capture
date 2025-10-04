@@ -460,6 +460,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "windows-cap-python"
+version = "2.0.0-alpha.7"
+dependencies = [
+ "pyo3",
+ "thiserror",
+ "windows",
+ "windows-capture",
+]
+
+[[package]]
 name = "windows-capture"
 version = "2.0.0-alpha.7"
 dependencies = [

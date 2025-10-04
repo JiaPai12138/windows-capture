@@ -4,19 +4,17 @@
 #![allow(clippy::multiple_crate_versions)] // Should update as soon as possible
 
 use std::os::raw::{c_char, c_int};
-use std::sync::Arc;
-use std::time::Duration;
 use std::{ptr, slice};
 
 use ::windows_capture::dxgi_duplication_api::{DxgiDuplicationApi, Error as DxgiDuplicationError};
-use ::windows_capture::frame::{self, Frame};
 use ::windows_capture::monitor::Monitor;
 use ::windows_capture::settings::{
     ColorFormat,
 };
-use ::windows_capture::window::Window;
 use pyo3::exceptions::PyException;
+use pyo3::ffi;
 use pyo3::prelude::*;
+use pyo3::types::PyMemoryView;
 use windows::Win32::Graphics::Direct3D11::{
     D3D11_CPU_ACCESS_READ, D3D11_MAP_READ, D3D11_MAPPED_SUBRESOURCE, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
     ID3D11Texture2D,
@@ -270,5 +268,17 @@ impl NativeDxgiDuplicationFrame {
 
     pub fn to_bytes(&self) -> Vec<u8> {
         unsafe { slice::from_raw_parts(self.ptr, self.len) }.to_vec()
+    }
+
+    pub fn buffer_view<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyMemoryView>> {
+        let len = isize::try_from(self.len).map_err(|_| PyException::new_err("Frame too large for memoryview"))?;
+        const PYBUF_READ: c_int = 0x100;
+        let view = unsafe { ffi::PyMemoryView_FromMemory(self.ptr.cast::<c_char>(), len, PYBUF_READ) };
+        if view.is_null() {
+            Err(PyException::new_err("Failed to create memoryview for DXGI frame"))
+        } else {
+            let any = unsafe { Bound::from_owned_ptr(py, view) };
+            any.downcast_into().map_err(|e| e.into())
+        }
     }
 }

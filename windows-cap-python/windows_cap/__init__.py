@@ -39,8 +39,8 @@ class DxgiDuplicationFrame:
         return int(self._native.bytes_per_row)
 
     def _raw_buffer(self) -> numpy.ndarray:
-        memory_view = self._native.buffer_view()
-        raw = numpy.frombuffer(memory_view, dtype=numpy.uint8)
+        memory_bytes = self._native.to_bytes()
+        raw = numpy.frombuffer(memory_bytes, dtype=numpy.uint8)
         return raw.reshape(self.height, self.bytes_per_row)
 
     def to_numpy(self, *, copy: bool = False) -> numpy.ndarray:
@@ -73,10 +73,10 @@ class DxgiDuplicationFrame:
         image = self.to_numpy(copy=copy)
 
         if self.color_format == "bgra8":
-            return image[..., :3].copy() if copy else image[..., :3]
+            return image[..., :3].copy() if copy else cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
 
         if self.color_format == "rgba8":
-            return image[..., 2::-1] if not copy else image[..., [2, 1, 0]].copy()
+            return cv2.cvtColor(image, cv2.COLOR_BGRA2RGB) if not copy else image[..., [2, 1, 0]].copy()
 
         # rgba16f -> convert to 0..255 range before casting
         normalized = numpy.clip(image.astype(numpy.float32), 0.0, 1.0)

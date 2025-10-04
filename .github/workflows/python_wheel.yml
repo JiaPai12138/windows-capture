@@ -32,11 +32,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip wheel
-          pip install maturin
+          pip install maturin numpy
 
       - name: Build wheels with maturin
         run: |
-          cd windows-capture-python
+          cd windows-cap-python
           maturin build --release --strip -i python --target x86_64-pc-windows-msvc
 
       - name: Upload all wheels
