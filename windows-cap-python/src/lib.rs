@@ -8,9 +8,7 @@ use std::{ptr, slice};
 
 use ::windows_capture::dxgi_duplication_api::{DxgiDuplicationApi, Error as DxgiDuplicationError};
 use ::windows_capture::monitor::Monitor;
-use ::windows_capture::settings::{
-    ColorFormat,
-};
+use ::windows_capture::settings::ColorFormat;
 use pyo3::exceptions::PyException;
 use pyo3::ffi;
 use pyo3::prelude::*;

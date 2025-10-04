@@ -1167,10 +1167,10 @@ impl VideoEncoder {
 
         self.frame_sender.send(Some((VideoEncoderSource::DirectX(surface), timestamp)))?;
 
-        if self.error_notify.load(atomic::Ordering::Relaxed)
-            && let Some(t) = self.transcode_thread.take()
-        {
-            t.join().expect("Failed to join transcode thread")?;
+        if self.error_notify.load(atomic::Ordering::Relaxed) {
+            if let Some(t) = self.transcode_thread.take() {
+                t.join().expect("Failed to join transcode thread")?;
+            }
         }
 
         Ok(())
@@ -1215,10 +1215,10 @@ impl VideoEncoder {
         // Advance counter after stamping
         self.audio_samples_sent = self.audio_samples_sent.saturating_add(frames_in_buf as u64);
 
-        if self.error_notify.load(atomic::Ordering::Relaxed)
-            && let Some(t) = self.transcode_thread.take()
-        {
-            t.join().expect("Failed to join transcode thread")?;
+        if self.error_notify.load(atomic::Ordering::Relaxed) {
+            if let Some(t) = self.transcode_thread.take() {
+                t.join().expect("Failed to join transcode thread")?;
+            }
         }
 
         Ok(())
@@ -1243,10 +1243,10 @@ impl VideoEncoder {
 
         self.frame_sender.send(Some((VideoEncoderSource::Buffer(buffer.to_vec()), timestamp)))?;
 
-        if self.error_notify.load(atomic::Ordering::Relaxed)
-            && let Some(t) = self.transcode_thread.take()
-        {
-            t.join().expect("Failed to join transcode thread")?;
+        if self.error_notify.load(atomic::Ordering::Relaxed) {
+            if let Some(t) = self.transcode_thread.take() {
+                t.join().expect("Failed to join transcode thread")?;
+            }
         }
 
         Ok(())
@@ -1272,10 +1272,10 @@ impl VideoEncoder {
 
         self.audio_samples_sent = self.audio_samples_sent.saturating_add(frames_in_buf as u64);
 
-        if self.error_notify.load(atomic::Ordering::Relaxed)
-            && let Some(t) = self.transcode_thread.take()
-        {
-            t.join().expect("Failed to join transcode thread")?;
+        if self.error_notify.load(atomic::Ordering::Relaxed) {
+            if let Some(t) = self.transcode_thread.take() {
+                t.join().expect("Failed to join transcode thread")?;
+            }
         }
 
         Ok(())
