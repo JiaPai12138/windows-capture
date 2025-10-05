@@ -78,7 +78,22 @@ class DxgiDuplicationFrame:
             return image[..., :3].copy() if copy else cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
 
         if self.color_format == "rgba8":
-            return cv2.cvtColor(image, cv2.COLOR_BGRA2RGB) if not copy else image[..., [2, 1, 0]].copy()
+            return cv2.cvtColor(image, cv2.COLOR_RGBA2BGR) if not copy else image[..., [2, 1, 0]].copy()
+
+        # rgba16f -> convert to 0..255 range before casting
+        normalized = numpy.clip(image.astype(numpy.float32), 0.0, 1.0)
+        return (normalized[..., [2, 1, 0]] * 255.0).astype(numpy.uint8)
+
+    def to_rgb(self, *, copy: bool = True) -> numpy.ndarray:
+        """Returns the frame converted to BGR ``numpy.uint8`` format."""
+
+        image = self.to_numpy(copy=copy)
+
+        if self.color_format == "rgba8":
+            return image[..., :3].copy() if copy else cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
+
+        if self.color_format == "bgra8":
+            return cv2.cvtColor(image, cv2.COLOR_RGBA2RGB) if not copy else image[..., [2, 1, 0]].copy()
 
         # rgba16f -> convert to 0..255 range before casting
         normalized = numpy.clip(image.astype(numpy.float32), 0.0, 1.0)
