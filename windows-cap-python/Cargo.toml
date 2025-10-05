@@ -21,7 +21,7 @@ name = "windows_capture"
 crate-type = ["cdylib"]
 
 [dependencies]
-bytemuck = { version = "1.24", features = ["derive", "avx512_simd"] }
+bytemuck = { version = "1.24", features = ["derive"] }
 numpy = "0.26"
 pyo3 = { version = "0.26", features = [ "extension-module", ] }
 rayon = "1.11"
