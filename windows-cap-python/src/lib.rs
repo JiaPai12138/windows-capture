@@ -14,8 +14,8 @@ use pyo3::ffi;
 use pyo3::prelude::*;
 use pyo3::types::PyMemoryView;
 use windows::Win32::Graphics::Direct3D11::{
-    D3D11_CPU_ACCESS_READ, D3D11_MAP_READ, D3D11_MAPPED_SUBRESOURCE, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
-    ID3D11Texture2D,
+    D3D11_BOX, D3D11_CPU_ACCESS_READ, D3D11_MAP_READ, D3D11_MAPPED_SUBRESOURCE, D3D11_TEXTURE2D_DESC,
+    D3D11_USAGE_STAGING, ID3D11Texture2D,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_FORMAT, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT,
@@ -92,15 +92,37 @@ impl NativeDxgiDuplication {
         Ok(Self { duplication, monitor })
     }
 
-    #[pyo3(signature = (timeout_ms=16))]
-    pub fn acquire_next_frame(&mut self, timeout_ms: u32) -> PyResult<Option<NativeDxgiDuplicationFrame>> {
+    #[pyo3(signature = (timeout_ms=16, area=None))]
+    pub fn acquire_next_frame(
+        &mut self,
+        timeout_ms: u32,
+        area: Option<Vec<i32>>,
+    ) -> PyResult<Option<NativeDxgiDuplicationFrame>> {
         match self.duplication.acquire_next_frame(timeout_ms) {
             Ok(frame) => {
                 let texture_desc = *frame.texture_desc();
-                let width = texture_desc.Width;
-                let height = texture_desc.Height;
                 let color_format = Self::color_format_from_dxgi(texture_desc.Format)?;
                 let bytes_per_pixel = Self::bytes_per_pixel(color_format);
+                let mut src_box = D3D11_BOX {
+                    left: 0,
+                    top: 0,
+                    front: 0,
+                    right: texture_desc.Width,
+                    bottom: texture_desc.Height,
+                    back: 1,
+                };
+
+                if let Some(xywh) = area {
+                    if xywh.iter().all(|&x| x >= 0) {
+                        src_box.left = xywh[0] as u32;
+                        src_box.top = xywh[1] as u32;
+                        src_box.right = xywh[2] as u32;
+                        src_box.bottom = xywh[3] as u32;
+                    }
+                }
+
+                let width = src_box.right - src_box.left;
+                let height = src_box.bottom - src_box.top;
 
                 let staging_desc = D3D11_TEXTURE2D_DESC {
                     Width: width,
@@ -124,7 +146,16 @@ impl NativeDxgiDuplication {
                 let staging = staging.expect("CreateTexture2D returned Ok but no texture");
 
                 unsafe {
-                    device_context.CopyResource(&staging, frame.texture());
+                    device_context.CopySubresourceRegion(
+                        &staging,
+                        0,
+                        0,
+                        0,
+                        0,
+                        frame.texture(),
+                        0,
+                        Some(&src_box as *const _),
+                    );
                 }
 
                 let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();

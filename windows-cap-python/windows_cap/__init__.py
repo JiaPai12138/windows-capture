@@ -1,12 +1,14 @@
 """Fastest Windows Screen Capture Library For Python 🔥."""
 
+from typing import List, Optional
+
+import cv2
+import numpy
+
 from .windows_capture import (
     NativeDxgiDuplication,
     NativeDxgiDuplicationFrame,
 )
-import numpy
-import cv2
-from typing import Optional
 
 
 class DxgiDuplicationFrame:
@@ -111,8 +113,8 @@ class DxgiDuplicationSession:
     def monitor_index(self) -> Optional[int]:
         return self._monitor_index
 
-    def acquire_frame(self, timeout_ms: int = 16) -> Optional[DxgiDuplicationFrame]:
-        native_frame = self._native.acquire_next_frame(timeout_ms)
+    def acquire_frame(self, timeout_ms: int = 16, area: Optional[List[int]] = None) -> Optional[DxgiDuplicationFrame]:
+        native_frame = self._native.acquire_next_frame(timeout_ms, area)
         if native_frame is None:
             return None
 
