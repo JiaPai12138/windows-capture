@@ -21,11 +21,13 @@ name = "windows_capture"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.26.0", features = [ "extension-module", ] }
-thiserror = "2.0.17"
-windows = "0.62.1"
+bytemuck = { version = "1.24", features = ["derive", "avx512_simd"] }
+numpy = "0.26"
+pyo3 = { version = "0.26", features = [ "extension-module", ] }
+rayon = "1.11"
+thiserror = "2.0"
+windows = "0.62"
 windows-capture = { path = ".." }
-# numpy = "0.26.0"
 
 [profile.release]
 codegen-units = 1

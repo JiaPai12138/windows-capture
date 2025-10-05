@@ -21,6 +21,10 @@ use windows::Win32::Graphics::Dxgi::Common::{
     DXGI_FORMAT, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R16G16B16A16_FLOAT,
     DXGI_SAMPLE_DESC,
 };
+use bytemuck::{cast_slice, Pod, Zeroable};
+use rayon::prelude::*;
+use numpy::{PyArray1, PyArray3};
+use numpy::PyArrayMethods;
 
 /// Fastest Windows Screen Capture Library For Python 🔥.
 #[pymodule]
@@ -28,6 +32,15 @@ fn windows_capture(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<NativeDxgiDuplication>()?;
     m.add_class::<NativeDxgiDuplicationFrame>()?;
     Ok(())
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Zeroable, Pod)]
+struct Bgra {
+    b: u8,
+    g: u8,
+    r: u8,
+    a: u8,
 }
 
 #[pyclass(unsendable)]
@@ -259,6 +272,42 @@ impl Drop for NativeDxgiDuplicationFrame {
     }
 }
 
+#[inline]
+fn bgra_to_rgb(bgra_bytes: &[u8]) -> Vec<u8> {
+    assert!(bgra_bytes.len() % 4 == 0);
+
+    let bgra_pixels: &[Bgra] = cast_slice(bgra_bytes);
+    let mut rgb = vec![0u8; bgra_pixels.len() * 3];
+
+    rgb.par_chunks_mut(3)
+        .zip(bgra_pixels.par_iter())
+        .for_each(|(rgb_px, bgra)| {
+            rgb_px[0] = bgra.r;
+            rgb_px[1] = bgra.g;
+            rgb_px[2] = bgra.b;
+        });
+
+    rgb
+}
+
+#[inline]
+fn bgra_to_bgr(bgra_bytes: &[u8]) -> Vec<u8> {
+    assert!(bgra_bytes.len() % 4 == 0);
+
+    let bgra_pixels: &[Bgra] = cast_slice(bgra_bytes);
+    let mut rgb = vec![0u8; bgra_pixels.len() * 3];
+
+    rgb.par_chunks_mut(3)
+        .zip(bgra_pixels.par_iter())
+        .for_each(|(rgb_px, bgra)| {
+            rgb_px[0] = bgra.b;
+            rgb_px[1] = bgra.g;
+            rgb_px[2] = bgra.r;
+        });
+
+    rgb
+}
+
 #[pymethods]
 #[allow(clippy::missing_const_for_fn)]
 impl NativeDxgiDuplicationFrame {
@@ -297,6 +346,28 @@ impl NativeDxgiDuplicationFrame {
 
     pub fn to_bytes(&self) -> Vec<u8> {
         unsafe { slice::from_raw_parts(self.ptr, self.len) }.to_vec()
+    }
+
+    pub fn to_rgb(&self) -> Py<PyArray3<u8>> {
+        let data = bgra_to_rgb(unsafe { slice::from_raw_parts(self.ptr, self.len) });
+        let shape = [self.height as usize, self.width as usize, 3usize];
+
+        Python::attach(|py| {
+            let reshaped = PyArray1::from_vec(py, data).to_dyn().reshape(shape).unwrap();
+            let arr3 = reshaped.downcast::<PyArray3<u8>>().unwrap();
+            return arr3.to_owned().unbind();
+        })
+    }
+
+    pub fn to_bgr(&self) -> Py<PyArray3<u8>> {
+        let data = bgra_to_bgr(unsafe { slice::from_raw_parts(self.ptr, self.len) });
+        let shape = [self.height as usize, self.width as usize, 3usize];
+
+        Python::attach(|py| {
+            let reshaped = PyArray1::from_vec(py, data).to_dyn().reshape(shape).unwrap();
+            let arr3 = reshaped.downcast::<PyArray3<u8>>().unwrap();
+            return arr3.to_owned().unbind();
+        })
     }
 
     pub fn buffer_view<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyMemoryView>> {

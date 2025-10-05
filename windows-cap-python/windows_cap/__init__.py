@@ -69,7 +69,7 @@ class DxgiDuplicationFrame:
         self._numpy_cache = frame
         return frame
 
-    def to_bgr(self, *, copy: bool = True) -> numpy.ndarray:
+    def to_bgr_old(self, *, copy: bool = True) -> numpy.ndarray:
         """Returns the frame converted to BGR ``numpy.uint8`` format."""
 
         image = self.to_numpy(copy=copy)
@@ -84,7 +84,7 @@ class DxgiDuplicationFrame:
         normalized = numpy.clip(image.astype(numpy.float32), 0.0, 1.0)
         return (normalized[..., [2, 1, 0]] * 255.0).astype(numpy.uint8)
 
-    def to_rgb(self, *, copy: bool = True) -> numpy.ndarray:
+    def to_rgb_old(self, *, copy: bool = True) -> numpy.ndarray:
         """Returns the frame converted to BGR ``numpy.uint8`` format."""
 
         image = self.to_numpy(copy=copy)
@@ -98,6 +98,12 @@ class DxgiDuplicationFrame:
         # rgba16f -> convert to 0..255 range before casting
         normalized = numpy.clip(image.astype(numpy.float32), 0.0, 1.0)
         return (normalized[..., [2, 1, 0]] * 255.0).astype(numpy.uint8)
+
+    def to_bgr(self) -> numpy.ndarray:
+        return self._native.to_bgr()
+
+    def to_rgb(self) -> numpy.ndarray:
+        return self._native.to_rgb()
 
     def save_as_image(self, path: str) -> None:
         """Saves the frame to disk using OpenCV."""
