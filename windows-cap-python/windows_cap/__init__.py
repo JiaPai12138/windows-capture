@@ -109,9 +109,9 @@ class DxgiDuplicationFrame:
         """Saves the frame to disk using OpenCV."""
 
         if self.color_format == "rgba16f":
-            bgr = self.to_bgr(copy=True)
+            bgr = self.to_bgr_old(copy=True)
         else:
-            bgr = self.to_bgr(copy=False)
+            bgr = self.to_bgr_old(copy=False)
 
         cv2.imwrite(path, bgr)
 
