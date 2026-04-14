@@ -24,7 +24,7 @@ crate-type = ["cdylib"]
 bytemuck = { version = "1.24", features = ["derive"] }
 numpy = "0.26"
 pyo3 = { version = "0.26", features = [ "extension-module", ] }
-rayon = "1.11"
+rayon = "1.12"
 thiserror = "2.0"
 windows = "0.62"
 windows-capture = { path = ".." }
